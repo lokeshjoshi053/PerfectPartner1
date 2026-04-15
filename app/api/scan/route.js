@@ -40,10 +40,10 @@ function pickFirstNumber(...values) {
 function htmlDecode(text) {
   return String(text || "")
     .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
+    .replace(/"/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
+    .replace(/</g, "<")
+    .replace(/>/g, ">");
 }
 
 function normalizeProfile(rawProfile) {
