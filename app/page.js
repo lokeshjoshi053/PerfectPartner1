@@ -168,6 +168,7 @@ export default function HomePage() {
         setScanResult({
           profile,
           analysis,
+          meta: json.meta || null,
           cardRank: `#${String(Math.floor(Math.random() * 999) + 1).padStart(3, "0")}`
         });
         setView("result");
@@ -337,8 +338,10 @@ export default function HomePage() {
           <section className="flex w-full flex-col space-y-8 pb-20">
             {meta ? (
               <div className="status-banner fade-in-up rounded-2xl px-4 py-3 text-sm text-[#7a3c10]">
-                <span className="font-bold">Result status:</span> {meta.message}
-                {meta.mock ? " This is a styled fallback result based on the username you entered." : null}
+                <span className="font-bold">Result status:</span>{" "}
+                {meta.exactMatch
+                  ? `Exact profile match confirmed for @${meta.requestedUsername}.`
+                  : meta.message}
               </div>
             ) : null}
 
