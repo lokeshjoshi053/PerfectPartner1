@@ -14,9 +14,7 @@
       "destination": "/api/:path*"
     }
   ],
-  "env": {
-    "SCRAPERAPI_KEY": "@scrprapi_key"
-  },
+  // "SCRAPERAPI_KEY": "@scrprapi_key"  // Remove reference - add manually in dashboard
   "headers": [
     {
       "source": "/(.*)",
