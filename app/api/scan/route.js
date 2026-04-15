@@ -6,8 +6,15 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const maxDuration = 30;
 
-const USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+const USER_AGENTS = [
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+];
+
+function getRandomUA() {
+  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
 const INSTAGRAM_APP_ID = "936619743392459";
 const OPTIONAL_BACKEND_SCAN_URL = process.env.BACKEND_SCAN_URL || "";
 
@@ -99,43 +106,41 @@ async function toDataUrl(imageUrl) {
   if (!imageUrl) return "";
 
   try {
-    const imageResponse = await fetch(imageUrl, {
+    console.log("🖼️ Converting profile pic:", imageUrl);
+    const imageResponse = await fetchWithRetry(imageUrl, {
       headers: {
-        "User-Agent": USER_AGENT,
-        Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
-      },
-      cache: "no-store"
+        Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      }
     });
 
-    if (!imageResponse.ok) return imageUrl;
+    if (!imageResponse.ok) {
+      console.warn(`Profile pic fetch failed (${imageResponse.status}):`, imageUrl);
+      return imageUrl;
+    }
 
     const contentType = imageResponse.headers.get("content-type") || "image/jpeg";
     const bytes = await imageResponse.arrayBuffer();
     const base64 = Buffer.from(bytes).toString("base64");
+    console.log("✅ Profile pic converted to base64");
     return `data:${contentType};base64,${base64}`;
-  } catch {
+  } catch (err) {
+    console.error("❌ Profile pic conversion failed:", err.message);
     return imageUrl;
   }
 }
 
 async function fetchInstagramApiProfile(username) {
-  const response = await fetch(
+  const response = await fetchWithRetry(
     `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`,
     {
       headers: {
         Accept: "*/*",
-        "User-Agent": USER_AGENT,
         "X-IG-App-ID": INSTAGRAM_APP_ID,
         Referer: `https://www.instagram.com/${username}/`,
         Origin: "https://www.instagram.com"
-      },
-      cache: "no-store"
+      }
     }
   );
-
-  if (!response.ok) {
-    throw new Error(`Instagram API request failed with ${response.status}`);
-  }
 
   const payload = await response.json();
   return normalizeProfile(payload?.data?.user || payload?.user || payload?.profile);
@@ -158,14 +163,41 @@ function parseInstagramCount(raw) {
   return pickFirstNumber(normalized);
 }
 
+async function fetchWithRetry(url, options = {}, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...options.headers,
+          "User-Agent": getRandomUA(),
+        },
+        cache: "no-store"
+      });
+
+      if (response.status === 429 || response.status === 403) {
+        const delay = Math.pow(2, i) * 1000; // 1s, 2s, 4s backoff
+        console.log(`Rate limited (${response.status}), retrying in ${delay}ms... (attempt ${i+1}/${retries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
+      if (response.ok) return response;
+      throw new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      if (i === retries - 1) throw error;
+    }
+  }
+  throw new Error(`Failed after ${retries} retries`);
+}
+
 async function fetchInstagramHtmlProfile(username) {
-  const scraperUrl = `http://api.scraperapi.com?api_key=c3e1bb7ac3adbedd58ecfca93c94147b&url=https://www.instagram.com/${username}/`;
-  const response = await fetch(scraperUrl, {
+  const apiKey = process.env.SCRAPERAPI_KEY || 'c3e1bb7ac3adbedd58ecfca93c94147b'; // Fallback but user should set env
+  const scraperUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=https://www.instagram.com/${username}/`;
+  const response = await fetchWithRetry(scraperUrl, {
     headers: {
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-      "User-Agent": USER_AGENT
-    },
-    cache: "no-store"
+    }
   });
 
   if (!response.ok) {
@@ -223,18 +255,13 @@ async function fetchInstagramHtmlProfile(username) {
 async function fetchOptionalBackendProfile(username) {
   if (!OPTIONAL_BACKEND_SCAN_URL) return null;
 
-  const response = await fetch(OPTIONAL_BACKEND_SCAN_URL, {
+  const response = await fetchWithRetry(OPTIONAL_BACKEND_SCAN_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ username }),
-    cache: "no-store"
+    body: JSON.stringify({ username })
   });
-
-  if (!response.ok) {
-    throw new Error(`Optional backend request failed with ${response.status}`);
-  }
 
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) {
@@ -252,11 +279,30 @@ async function fetchOptionalBackendProfile(username) {
 }
 
 async function getInstagramProfile(username) {
-  const attempts = [
-    async () => fetchInstagramApiProfile(username),
-    async () => fetchInstagramHtmlProfile(username),
-    async () => fetchOptionalBackendProfile(username)
-  ];
+// Simple in-memory cache (restart clears it, good for dev/prod stateless)
+const profileCache = new Map();
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+function getCacheKey(username) {
+  return `ig:${normalizeUsername(username)}`;
+}
+
+const attempts = [
+  async () => {
+    const key = getCacheKey(username);
+    const cached = profileCache.get(key);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log(`📦 Cache hit for @${username}`);
+      return cached.profile;
+    }
+    console.log(`🌐 Fetching @${username} (cache miss)`);
+    const profile = await fetchInstagramApiProfile(username);
+    profileCache.set(key, { profile, timestamp: Date.now() });
+    return profile;
+  },
+  async () => fetchInstagramHtmlProfile(username),
+  async () => fetchOptionalBackendProfile(username)
+];
 
   const errors = [];
   for (const attempt of attempts) {
@@ -307,10 +353,10 @@ export async function POST(request) {
       { status: 200 }
     );
   } catch (error) {
+    console.error(`❌ Full scan error for @${requestedUsername}:`, error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
     return invalidResponse(
-      error instanceof Error && error.message
-        ? `Instagram profile fetch failed for the exact username entered. ${error.message}`
-        : "Instagram profile fetch failed for the exact username entered.",
+      `Profile scan failed: ${errorMsg}. Try again in a bit or check your ScraperAPI key in .env.local`,
       502
     );
   }
