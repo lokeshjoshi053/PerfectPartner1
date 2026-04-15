@@ -197,7 +197,7 @@ const apiKey = process.env.SCRAPERAPI_KEY;
     console.error('❌ SCRAPERAPI_KEY missing! Add to .env.local or Vercel dashboard.');
     throw new Error('SCRAPERAPI_KEY environment variable is required. Get free key from scraperapi.com');
   }
-  const scraperUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=https://www.instagram.com/${username}/`;
+  const scraperUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=https://www.instagram.com/${username}/&render=true&country_code=us&timeout=10000&retry=3&retry_delay=5000`;
   const response = await fetchWithRetry(scraperUrl, {
     headers: {
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
