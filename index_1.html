@@ -559,7 +559,7 @@
 
                 if (!resp.ok || json.error) {
                     switchState('hero');
-                showError(json.error || 'Profile fetch failed. Check server logs.');
+                showError(json.error || (json.message || 'Profile fetch failed. Private profile? Rate limited? Check SCRAPERAPI_KEY.'));
                     return;
                 }
 
@@ -576,7 +576,7 @@
             } catch (e) {
                 clearInterval(textInterval);
                 switchState('hero');
-                showError('Server se connect nahi ho paya. Flask server run kar pehle!');
+                showError('Network error. Check: 1) npm run dev running 2) .env.local SCRAPERAPI_KEY set 3) Vercel deployment');
             }
         }
 

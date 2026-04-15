@@ -192,7 +192,11 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
 }
 
 async function fetchInstagramHtmlProfile(username) {
-  const apiKey = process.env.SCRAPERAPI_KEY || 'c3e1bb7ac3adbedd58ecfca93c94147b'; // Fallback but user should set env
+const apiKey = process.env.SCRAPERAPI_KEY;
+  if (!apiKey) {
+    console.error('❌ SCRAPERAPI_KEY missing! Add to .env.local or Vercel dashboard.');
+    throw new Error('SCRAPERAPI_KEY environment variable is required. Get free key from scraperapi.com');
+  }
   const scraperUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=https://www.instagram.com/${username}/`;
   const response = await fetchWithRetry(scraperUrl, {
     headers: {
@@ -279,13 +283,13 @@ async function fetchOptionalBackendProfile(username) {
 }
 
 async function getInstagramProfile(username) {
-// Simple in-memory cache (restart clears it, good for dev/prod stateless)
-const profileCache = new Map();
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour
-
 function getCacheKey(username) {
   return `ig:${normalizeUsername(username)}`;
 }
+
+// Vercel serverless: no persistent cache needed (stateless)
+const profileCache = new Map(); // per-instance only (cold starts ok)
+const CACHE_TTL = 5 * 60 * 1000; // 5min for serverless
 
 const attempts = [
   async () => {
@@ -353,10 +357,11 @@ export async function POST(request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error(`❌ Full scan error for @${requestedUsername}:`, error);
+    const safeUsername = normalizeUsername(request.body?.username) || 'unknown';
+    console.error(`❌ Full scan error for @${safeUsername}:`, error);
     const errorMsg = error instanceof Error ? error.message : String(error);
     return invalidResponse(
-      `Profile scan failed: ${errorMsg}. Try again in a bit or check your ScraperAPI key in .env.local`,
+      `Profile scan failed: ${errorMsg}`,
       502
     );
   }
