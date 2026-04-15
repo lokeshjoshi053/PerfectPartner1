@@ -357,7 +357,12 @@ export async function POST(request) {
       { status: 200 }
     );
   } catch (error) {
-    const safeUsername = normalizeUsername(request.body?.username) || 'unknown';
+    let safeUsername = 'unknown';
+    try {
+      const body = await request.json();
+      safeUsername = normalizeUsername(body?.username) || 'unknown';
+    } catch {}
+    console.error(`❌ Full scan error for @${safeUsername}:`, error);
     console.error(`❌ Full scan error for @${safeUsername}:`, error);
     const errorMsg = error instanceof Error ? error.message : String(error);
     return invalidResponse(
