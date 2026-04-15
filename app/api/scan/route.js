@@ -159,7 +159,8 @@ function parseInstagramCount(raw) {
 }
 
 async function fetchInstagramHtmlProfile(username) {
-  const response = await fetch(`https://www.instagram.com/${username}/`, {
+  const scraperUrl = `http://api.scraperapi.com?api_key=c3e1bb7ac3adbedd58ecfca93c94147b&url=https://www.instagram.com/${username}/`;
+  const response = await fetch(scraperUrl, {
     headers: {
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
       "User-Agent": USER_AGENT
@@ -168,10 +169,29 @@ async function fetchInstagramHtmlProfile(username) {
   });
 
   if (!response.ok) {
-    throw new Error(`Instagram HTML request failed with ${response.status}`);
+    throw new Error(`ScraperAPI request failed with ${response.status}`);
   }
 
-  const html = await response.text();
+  let html = await response.text();
+  if (!html || html.includes("error") || !html.includes(username)) {
+    throw new Error("ScraperAPI failed to fetch valid Instagram profile");
+  }
+
+  // Try extract JSON from window._sharedData (more reliable)
+  const jsonMatch = html.match(/window\._sharedData\s*=\s*({.*});/s);
+  if (jsonMatch) {
+    try {
+      const data = JSON.parse(jsonMatch[1]);
+      console.log("✅ Using _sharedData JSON");
+      const user = data.entry_data.ProfilePage?.[0]?.graphql?.user || {};
+      if (user.username === username) {
+        return normalizeProfile(user);
+      }
+    } catch (e) {
+      console.warn("JSON parse failed:", e.message);
+    }
+  }
+  console.log("🔄 Falling back to meta parsing");
   const description =
     extractHtmlMeta(html, "og:description") ||
     extractHtmlMeta(html, "description", "name");
