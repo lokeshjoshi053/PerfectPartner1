@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PerfectPartner.AI - Rishta Scanner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        saffron: '#FF9933', deepred: '#C0392B', gold: '#F4C430',
+                        cream: '#FFF8EE', teal: '#008080', charcoal: '#1C1C1C'
+                    },
+                    fontFamily: {
+                        head: ['"Playfair Display"', 'serif'],
+                        body: ['"DM Sans"', 'sans-serif'],
+                        pixel: ['"Press Start 2P"', 'monospace']
+                    },
+                    backgroundImage: {
+                        'desi-pattern': "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ff9933' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+                        'gradient-saffron-red': 'linear-gradient(135deg, #FF9933 0%, #C0392B 100%)',
+                    },
+                    boxShadow: { 'desi': '0 10px 25px -5px rgba(192,57,43,0.15), 0 8px 10px -6px rgba(192,57,43,0.1)' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #FFF8EE; color: #1C1C1C; overflow-x: hidden; }
+        img { max-width: 100%; }
+        .progress-ring { transform: rotate(-90deg); transform-origin: 50% 50%; }
+        .progress-ring__circle { transition: stroke-dashoffset 1.5s ease-in-out; stroke-linecap: round; }
+        .torn-chit { position: relative; background: #fff; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .torn-chit::after { content: ""; position: absolute; bottom: -5px; left: 0; width: 100%; height: 10px; background: linear-gradient(45deg, transparent 33.333%, #FFF8EE 33.333%, #FFF8EE 66.667%, transparent 66.667%), linear-gradient(-45deg, transparent 33.333%, #FFF8EE 33.333%, #FFF8EE 66.667%, transparent 66.667%); background-size: 10px 20px; }
+        .stamp { border: 4px solid; border-radius: 8px; display: inline-block; font-weight: 900; padding: 0.5rem 1rem; text-transform: uppercase; font-family: 'Playfair Display', serif; letter-spacing: 2px; transform: rotate(-10deg) scale(1.5); opacity: 0; z-index: 10; }
+        .stamp.marry { border-color: #22c55e; color: #22c55e; }
+        .stamp.dump { border-color: #ef4444; color: #ef4444; }
+        .stamp.run { border-color: #C0392B; color: #C0392B; }
+        .stamp.maybe { border-color: #eab308; color: #eab308; }
+        .stamp-animate { animation: thud 0.4s cubic-bezier(0.25,1,0.5,1) forwards; animation-delay: 1s; }
+        @keyframes thud { 0%{transform:rotate(-20deg) scale(2);opacity:0} 50%{transform:rotate(-10deg) scale(0.9);opacity:1} 100%{transform:rotate(-10deg) scale(1);opacity:1} }
+        .fade-in-up { opacity:0; transform:translateY(20px); animation:fadeInUp 0.6s ease-out forwards; }
+        .delay-1{animation-delay:0.2s}.delay-2{animation-delay:0.4s}.delay-3{animation-delay:0.6s}.delay-4{animation-delay:0.8s}
+        @keyframes fadeInUp { to{opacity:1;transform:translateY(0)} }
+        .spin-mandala { animation: spin 8s linear infinite; }
+        @keyframes spin { 100%{transform:rotate(360deg)} }
+        .score-bar-fill { transition: width 1.5s ease-out; width: 0%; }
+
+        /* ── SHAREABLE CARD ── */
+        #share-card {
+            width: min(100%, 700px);
+            min-height: 380px;
+            background: #C2185B;
+            background-image: radial-gradient(ellipse at 30% 50%, #d81b8a 0%, #b5124e 60%, #8b0a3a 100%);
+            position: relative;
+            overflow: hidden;
+            font-family: 'Press Start 2P', monospace;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: clamp(1.1rem, 3vw, 2rem) clamp(1rem, 4vw, 2.25rem);
+            flex-shrink: 0;
+            border-radius: 1.5rem;
+        }
+        #share-card .card-noise {
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+        #share-card .big-dollar {
+            position: absolute; right: -0.25rem; top: 50%; transform: translateY(-50%);
+            font-size: clamp(9rem, 28vw, 20rem); color: rgba(255,255,255,0.08);
+            font-family: 'Press Start 2P', monospace;
+            line-height: 1; user-select: none; pointer-events: none;
+            letter-spacing: -0.625rem;
+        }
+        #share-card .card-avatar {
+            position: absolute; top: clamp(1rem, 3vw, 1.75rem); left: clamp(1rem, 4vw, 2.25rem);
+            width: clamp(5.5rem, 20vw, 10rem); height: clamp(5.5rem, 20vw, 10rem);
+            border: 3px solid rgba(255,255,255,0.2);
+            overflow: hidden; background: rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center;
+        }
+        #share-card .card-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        #share-card .card-top-right {
+            position: absolute; top: clamp(1rem, 3vw, 1.75rem); right: clamp(1rem, 4vw, 2.25rem);
+            color: #fff; font-size: clamp(0.85rem, 2.8vw, 1.375rem); letter-spacing: 0.18em; text-align: right;
+            line-height: 1.4;
+        }
+        #share-card .card-name {
+            color: #F4C430;
+            font-size: clamp(1.75rem, 6vw, 3.25rem);
+            letter-spacing: 0.04em;
+            line-height: 1;
+            margin-bottom: 1rem;
+            text-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+            max-width: calc(100% - 8rem);
+            word-break: break-word;
+        }
+        #share-card .card-bars {
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        #share-card .card-bar-row {
+            display: flex; align-items: center; gap: 0.75rem;
+        }
+        #share-card .card-bar-track {
+            flex: 1; height: clamp(0.8rem, 2.4vw, 1.25rem); background: #F4C430; position: relative;
+        }
+        #share-card .card-bar-fill {
+            position: absolute; left: 0; top: 0; bottom: 0;
+            background: #F4C430;
+        }
+        #share-card .card-bar-label {
+            color: #fff; font-size: clamp(0.5rem, 1.8vw, 0.6875rem); text-align: right; min-width: clamp(4.5rem, 18vw, 7.5rem);
+            letter-spacing: 1px;
+        }
+        #share-card .card-verdict-badge {
+            position: absolute; bottom: clamp(1rem, 3vw, 2rem); right: clamp(1rem, 4vw, 2.25rem);
+            background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
+            padding: 0.5rem 0.875rem; font-size: clamp(0.45rem, 1.7vw, 0.625rem); color: #fff; letter-spacing: 0.18em;
+        }
+        #share-card .card-score-badge {
+            position: absolute; top: clamp(1rem, 3vw, 1.75rem); right: clamp(1rem, 4vw, 2.25rem);
+            display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+        }
+        /* Loading spinner */
+        .loading-spinner {
+            border: 3px solid rgba(255,153,51,0.2);
+            border-top-color: #FF9933;
+            border-radius: 50%;
+            width: 24px; height: 24px;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+
+        /* Input step reveal */
+        #session-row { transition: all 0.4s ease; }
+
+        /* Bio line clamp */
+        .bio-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        @media (max-width: 767px) {
+            .torn-chit { padding: 1.125rem; }
+            .stamp { transform: rotate(-10deg) scale(0.9); }
+            #share-card {
+                min-height: 320px;
+                aspect-ratio: 7 / 4.8;
+            }
+            #share-card .card-name {
+                margin-bottom: 0.875rem;
+                max-width: 100%;
+                padding-right: 4.5rem;
+            }
+            #share-card .card-bar-row {
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            #share-card .card-verdict-badge {
+                max-width: 55%;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #share-card {
+                min-height: 280px;
+                aspect-ratio: auto;
+                padding-top: 6.5rem;
+            }
+            #share-card .card-avatar {
+                width: 4.5rem;
+                height: 4.5rem;
+            }
+            #share-card .big-dollar {
+                top: 38%;
+                right: -1.5rem;
+            }
+            #share-card .card-top-right {
+                max-width: 45%;
+            }
+            #share-card .card-name {
+                font-size: 1.45rem;
+                padding-right: 0;
+            }
+            #share-card .card-bar-label {
+                min-width: 3.75rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-desi-pattern min-h-screen flex flex-col font-body">
+
+    <nav class="w-full p-4 flex justify-center items-center backdrop-blur-sm bg-cream/80 sticky top-0 z-50 border-b border-saffron/20">
+        <div class="flex items-center gap-2 text-deepred font-head text-2xl font-bold tracking-tight">
+            <i class="bi bi-eye text-saffron"></i>
+            PerfectPartner.AI
+        </div>
+    </nav>
+
+    <main class="flex-grow flex flex-col items-center justify-center p-4 md:p-8 w-full max-w-5xl mx-auto">
+
+        <!-- HERO -->
+        <section id="hero-section" class="w-full flex flex-col items-center text-center space-y-8 py-10 fade-in-up">
+            <div class="space-y-4 max-w-2xl">
+                <span class="inline-block px-4 py-1 text-xs font-semibold tracking-wider text-deepred bg-red-100 rounded-full mb-2">beta v1.0 · Mom approved</span>
+                <h1 class="text-5xl md:text-7xl font-head font-black text-charcoal leading-tight">
+                    <span class="text-transparent bg-clip-text bg-gradient-saffron-red">Rishta AI</span> ne pakad liya <i class="bi bi-search text-saffron opacity-80 text-4xl"></i>
+                </h1>
+                <p class="text-xl md:text-2xl text-gray-700 font-medium">
+                    Instagram daalo. Scan karo. <span class="line-through decoration-red-500 opacity-70">Shaadi karo</span> ya bhago.
+                </p>
+            </div>
+
+            <div class="w-full max-w-md bg-white p-6 rounded-3xl shadow-desi border border-saffron/20 relative">
+                <div class="absolute -top-4 -right-4 text-3xl opacity-50"><i class="bi bi-flower1 text-saffron"></i></div>
+
+                <div class="space-y-4">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <span class="text-gray-400 font-bold text-lg">@</span>
+                        </div>
+                        <input type="text" id="ig-handle"
+                            class="w-full pl-10 pr-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl focus:ring-0 focus:border-saffron text-lg font-medium transition-colors placeholder-gray-400 outline-none"
+                            placeholder="Instagram Username daalo"
+                            autocomplete="off">
+                    </div>
+
+                    <div id="scan-error" class="hidden text-sm text-red-600 bg-red-50 rounded-lg px-4 py-2 text-left"></div>
+
+                    <button id="scan-btn" onclick="startScanning()"
+                        class="w-full bg-gradient-saffron-red hover:opacity-90 text-white font-bold text-lg py-4 rounded-xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-95 flex justify-center items-center gap-2">
+                        Scan Karo <i class="bi bi-ev-front-fill"></i>
+                    </button>
+                </div>
+            </div>
+
+            <p class="text-xs text-gray-500 max-w-sm">*Purely for entertainment. Session ID is used only to fetch public profile data. Not stored anywhere.</p>
+        </section>
+
+        <!-- LOADING -->
+        <section id="loading-section" class="hidden w-full flex-col items-center justify-center space-y-8 py-20 min-h-[60vh]">
+            <div class="relative w-32 h-32 text-deepred">
+                <svg class="spin-mandala w-full h-full" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="10 5" opacity="0.5"/>
+                    <path fill="currentColor" d="M50,10 C50,10 60,30 60,50 C60,70 50,90 50,90 C50,90 40,70 40,50 C40,30 50,10 50,10 Z" opacity="0.8"/>
+                    <circle cx="50" cy="50" r="10" fill="#FF9933"/>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i class="bi bi-eye-fill text-white pb-1"></i>
+                </div>
+            </div>
+            <div class="h-16 flex items-center justify-center w-full px-4">
+                <p id="loading-text" class="text-xl md:text-2xl font-head font-bold text-charcoal text-center transition-opacity duration-300"></p>
+            </div>
+            <p class="text-sm text-gray-400 italic">Thoda sabar karo, uncle/aunty scan kar rahe hain...</p>
+        </section>
+
+        <!-- RESULTS -->
+        <section id="result-section" class="hidden w-full flex-col space-y-8 pb-20">
+
+            <!-- Profile Header Card -->
+            <div class="bg-white rounded-3xl p-6 md:p-10 shadow-desi border-t-8 border-saffron flex flex-col md:flex-row items-center gap-8 relative overflow-hidden fade-in-up">
+                <div class="relative w-32 h-32 md:w-40 md:h-40 shrink-0">
+                    <div class="w-full h-full rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center bg-gray-200">
+                        <img id="profile-pic" src="" alt="" class="w-full h-full object-cover hidden">
+                        <i id="profile-pic-placeholder" class="bi bi-person-bounding-box text-5xl text-gray-400"></i>
+                    </div>
+                    <div class="absolute -bottom-2 -right-2 bg-white rounded-full p-1 shadow">
+                        <i class="bi bi-eye-fill text-2xl text-blue-600"></i>
+                    </div>
+                </div>
+
+                <div class="flex-grow text-center md:text-left space-y-2 relative z-10">
+                    <div class="flex flex-col md:flex-row items-center gap-3 flex-wrap">
+                        <h2 id="res-name" class="text-3xl font-head font-bold text-charcoal capitalize"></h2>
+                        <span id="res-handle" class="text-lg text-gray-500 font-medium"></span>
+                        <span id="res-verified" class="hidden text-blue-500 text-lg"><i class="bi bi-patch-check-fill"></i></span>
+                    </div>
+                    <p id="res-bio" class="text-gray-600 text-sm bio-clamp max-w-md"></p>
+                    <div class="flex gap-6 justify-center md:justify-start pt-1">
+                        <div class="text-center">
+                            <div id="res-followers" class="font-black text-charcoal text-lg">—</div>
+                            <div class="text-xs text-gray-400 uppercase tracking-wide">Followers</div>
+                        </div>
+                        <div class="text-center">
+                            <div id="res-following" class="font-black text-charcoal text-lg">—</div>
+                            <div class="text-xs text-gray-400 uppercase tracking-wide">Following</div>
+                        </div>
+                        <div class="text-center">
+                            <div id="res-posts" class="font-black text-charcoal text-lg">—</div>
+                            <div class="text-xs text-gray-400 uppercase tracking-wide">Posts</div>
+                        </div>
+                    </div>
+                    <p class="text-gray-500 text-xs pt-1">AI Background Verification: <span class="font-bold text-green-600">Complete</span></p>
+                </div>
+
+                <div class="relative flex items-center justify-center shrink-0">
+                    <svg class="progress-ring w-32 h-32" viewBox="0 0 100 100">
+                        <circle class="text-gray-100 stroke-current" stroke-width="8" cx="50" cy="50" r="40" fill="transparent"></circle>
+                        <circle id="main-score-ring" class="text-green-500 progress-ring__circle stroke-current" stroke-width="8" cx="50" cy="50" r="40" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="251.2"></circle>
+                    </svg>
+                    <div class="absolute text-center flex flex-col">
+                        <span id="main-score-text" class="text-3xl font-black text-charcoal">0</span>
+                        <span class="text-[10px] uppercase font-bold text-gray-400">Score</span>
+                    </div>
+                </div>
+
+                <div class="absolute top-4 right-4 md:right-20 pointer-events-none">
+                    <div id="verdict-stamp" class="stamp"></div>
+                </div>
+            </div>
+
+            <!-- Score Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div id="score-cards-container" class="contents"></div>
+            </div>
+
+            <!-- Flags -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4 fade-in-up delay-3">
+                <div class="torn-chit bg-green-50/50 border border-green-100 rounded-t-lg">
+                    <div class="flex items-center gap-2 mb-4 border-b border-green-200 pb-2">
+                        <i class="bi bi-check-circle-fill text-green-500 text-xl"></i>
+                        <h3 class="text-xl font-bold font-head text-green-900">Green Flags <span class="text-sm font-normal">(Shukar hai)</span></h3>
+                    </div>
+                    <ul id="green-flags-list" class="space-y-3 text-gray-700 font-medium"></ul>
+                </div>
+                <div class="torn-chit bg-red-50/50 border border-red-100 rounded-t-lg">
+                    <div class="flex items-center gap-2 mb-4 border-b border-red-200 pb-2">
+                        <i class="bi bi-flag-fill text-red-500 text-xl"></i>
+                        <h3 class="text-xl font-bold font-head text-red-900">Red Flags <span class="text-sm font-normal">(Tauba Tauba)</span></h3>
+                    </div>
+                    <ul id="red-flags-list" class="space-y-3 text-gray-700 font-medium"></ul>
+                </div>
+            </div>
+
+            <!-- Final Verdict -->
+            <div class="w-full bg-gradient-saffron-red rounded-3xl p-8 md:p-12 text-white text-center shadow-lg relative overflow-hidden fade-in-up delay-4">
+                <div class="absolute inset-0 bg-desi-pattern opacity-10 pointer-events-none mix-blend-overlay"></div>
+                <div class="relative z-10 flex flex-col items-center">
+                    <i class="bi bi-quote text-4xl text-gold/50 mb-4"></i>
+                    <h2 id="final-verdict-text" class="text-3xl md:text-5xl font-head font-black mb-6 leading-tight drop-shadow-md"></h2>
+                    <div class="w-16 h-1 bg-gold rounded-full mb-6"></div>
+                    <p id="closing-line-text" class="text-lg md:text-xl md:w-3/4 mx-auto font-medium italic opacity-90"></p>
+                </div>
+            </div>
+
+            <!-- ── SHAREABLE CARD SECTION ── -->
+            <div class="fade-in-up delay-4 space-y-4">
+                <h3 class="text-2xl font-head font-bold text-charcoal text-center flex items-center justify-center gap-2">
+                    <i class="bi bi-share-fill text-saffron"></i> Share Karo Yaar
+                </h3>
+
+                <!-- The card itself (for screenshot) -->
+                <div class="flex justify-center px-1 sm:px-0">
+                    <div id="share-card">
+                        <div class="card-noise"></div>
+                        <div class="big-dollar">$</div>
+
+                        <!-- Avatar (top-left) -->
+                        <div class="card-avatar">
+                            <img id="card-avatar-img" src="" alt="">
+                        </div>
+
+                        <!-- Top-right label -->
+                        <div class="card-top-right">
+                            <div style="font-size:clamp(0.55rem,1.8vw,0.875rem);letter-spacing:0.28em;opacity:0.9">RISHTA</div>
+                            <div style="font-size:clamp(0.9rem,2.8vw,1.375rem);letter-spacing:0.18em">SCAN</div>
+                        </div>
+
+                        <!-- Score badge (below top-right) -->
+                        <div style="position:absolute;top:clamp(5.3rem,18vw,90px);right:clamp(1rem,4vw,36px);text-align:right;color:#F4C430;font-family:'Press Start 2P',monospace;">
+                            <div id="card-score-num" style="font-size:clamp(1.5rem,6vw,48px);line-height:1;text-shadow:3px 3px 0 rgba(0,0,0,0.3)">—</div>
+                            <div style="font-size:clamp(0.4rem,1.5vw,8px);color:rgba(255,255,255,0.7);letter-spacing:3px;margin-top:4px">OUT OF 100</div>
+                        </div>
+
+                        <!-- Name (bottom-left) -->
+                        <div id="card-name" class="card-name">—</div>
+
+                        <!-- Bars -->
+                        <div class="card-bars">
+                            <div class="card-bar-row">
+                                <div class="card-bar-track" style="flex:1;height:clamp(0.8rem,2.4vw,1.25rem);background:rgba(244,196,48,0.3);position:relative;">
+                                    <div id="card-bar-1" class="card-bar-fill" style="background:#F4C430;height:100%;width:0%;transition:width 1s 0.5s ease-out;"></div>
+                                </div>
+                                <div class="card-bar-label">DEVELOPER</div>
+                            </div>
+                            <div class="card-bar-row">
+                                <div class="card-bar-track" style="flex:1;height:clamp(0.8rem,2.4vw,1.25rem);background:rgba(244,196,48,0.3);position:relative;">
+                                    <div id="card-bar-2" class="card-bar-fill" style="background:#F4C430;height:100%;width:0%;transition:width 1s 0.7s ease-out;"></div>
+                                </div>
+                                <div id="card-bar-label-2" class="card-bar-label">#000</div>
+                            </div>
+                        </div>
+
+                        <!-- Verdict badge -->
+                        <div id="card-verdict-badge" class="card-verdict-badge"></div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                    <button onclick="downloadCard()" class="px-8 py-3 bg-gradient-saffron-red text-white rounded-xl font-bold hover:opacity-90 transition shadow-lg flex items-center gap-2">
+                        <i class="bi bi-download"></i> Card Download Karo
+                    </button>
+                    <button onclick="resetApp()" class="px-8 py-3 bg-white text-charcoal border-2 border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition shadow-sm flex items-center gap-2">
+                        <i class="bi bi-arrow-counterclockwise"></i> Scan Kisi Aur Ko
+                    </button>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer class="w-full py-6 text-center text-sm text-gray-500 border-t border-gray-200 mt-auto bg-cream/50">
+        Made with chai, anxiety, and a little bit of kundli energy. &copy; PerfectPartner.AI
+    </footer>
+
+    <template id="score-card-template">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow fade-in-up flex flex-col h-full">
+            <div class="flex justify-between items-center mb-3">
+                <h4 class="font-head font-bold text-lg text-charcoal card-title">Title</h4>
+                <div class="font-black text-xl card-score">0</div>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2 mb-4 overflow-hidden">
+                <div class="bg-saffron h-2 rounded-full score-bar-fill" style="width:0%"></div>
+            </div>
+            <p class="text-sm text-gray-600 italic mt-auto card-roast leading-relaxed">"Roast text here"</p>
+        </div>
+    </template>
+
+    <script>
+        const loadingSteps = [
+            "🔍 Instagram profile dhoondh raha hoon...",
+            "📸 Posts scan ho rahe hain...",
+            "💸 Financial aura detect ho rahi hai...",
+            "🎭 Fake-o-meter calibrate ho raha hai...",
+            "👨‍👩‍👧 Indian Parent Approval loading...",
+            "🧿 Final report ready kar raha hoon..."
+        ];
+
+        // AI analysis engine — generates scores + roasts based on real profile data
+        function generateAnalysis(profile) {
+            const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+            const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+            // Bias scores based on real metrics
+            const followerRatio = profile.followers > 0 ? profile.following / profile.followers : 5;
+            const hasVerified = profile.is_verified;
+            const hasBio = (profile.bio || '').length > 20;
+            const highFollowers = profile.followers > 10000;
+
+            // Derive scores with some real signal
+            const family_values = rand(30, 90);
+            const financial_stability = hasVerified ? rand(60, 95) : highFollowers ? rand(55, 85) : rand(20, 75);
+            const personality = hasBio ? rand(50, 90) : rand(20, 60);
+            const cultural_goodness = rand(25, 85);
+            const trustworthiness = followerRatio > 3 ? rand(10, 45) : rand(50, 90);
+            const lifestyle = rand(30, 80);
+            const fake_meter = highFollowers && followerRatio > 5 ? rand(60, 95) : rand(10, 60);
+
+            const avg = Math.floor([family_values, financial_stability, personality, cultural_goodness, trustworthiness, lifestyle, fake_meter].reduce((a,b)=>a+b,0)/7);
+
+            const roasts = {
+                family_values: ["Rishta pakka karne se pehle kundli set check kar lena.","Sanskaar level: Only touches parents' feet when asking for money.","Proper susheel vibe, mummy approved ngl.","Family functions mein sabse aage, khaan-paan mein sabse peeche."],
+                financial_stability: ["Starbucks daily peeta hai but splitwise me ₹10 add karta hai.","Crypto bro alert, run before he explains blockchain.","Papa ka paisa but aesthetic tera bhai ka hai.","FDs aur SIPs sort hain boss, subtle flex."],
+                personality: ["Main character energy but zero character arc.","Bio me 'wanderlust' likha hai but Goa cancel hota rehta hai.","Fluent in sarcasm and ghosting.","10/10 vibe, would share my golgappa with."],
+                cultural_goodness: ["Navratri me only garba, no falahaar.","Kurta pehnne ka shauk hai bas Diwali photo ke liye.","Desi at heart, videshi on the grammar."],
+                trustworthiness: ["Phone face-down rakhta hai table pe 🚩","Last seen frozen in 2019.","100% transparent, open book literal.","Caught in 4K multiple times in tagged photos."],
+                lifestyle: ["Gym selfie to workout ratio is heavily skewed.","Sleeps at 4 AM, asks 'utha nai abhi tak?' at 12 PM.","Actually touches grass, surprisingly healthy."],
+                fake_meter: ["Facetune subscription expire ho gaya shayad.","Bro's entire personality is curated via Pinterest.","Genuinely raw, no cap.","Filters hata do toh pados ka Sonu lagta hai."]
+            };
+
+            let vType = "maybe", vText = "";
+            if (avg > 75) { vType = "marry"; vText = pick(["Lock kar do bhai yeh rishta, kundli matching ki zaroorat nahi.", "Total green flag, mummy ko photo bhej de.", "Slay kar diya boss, shaadi ka card chhapwa lo."]); }
+            else if (avg < 35 || trustworthiness < 20 || fake_meter > 85) { vType = "run"; vText = pick(["Bhago bhai bhago, red flag ki dukaan hai.", "Block. Report. Delete. In that order.", "AI ne hath khade kar diye, yeh out of syllabus hai."]); }
+            else if (avg < 50) { vType = "dump"; vText = pick(["Time waste mat kar, next swipe kar.", "Lowkey delulu lag raha/rahi hai.", "It's giving 'I ghost people for fun'."]); }
+            else { vType = "maybe"; vText = pick(["Soch le thoda, risky investment hai.", "Not terrible, but not 'shaadi material' yet either.", "Potential hai, thoda aur scan karo real life mein."]); }
+
+            return {
+                scores: {
+                    family_values: { score: family_values, roast: pick(roasts.family_values) },
+                    financial_stability: { score: financial_stability, roast: pick(roasts.financial_stability) },
+                    personality: { score: personality, roast: pick(roasts.personality) },
+                    cultural_goodness: { score: cultural_goodness, roast: pick(roasts.cultural_goodness) },
+                    trustworthiness: { score: trustworthiness, roast: pick(roasts.trustworthiness) },
+                    lifestyle: { score: lifestyle, roast: pick(roasts.lifestyle) },
+                    fake_meter: { score: fake_meter, roast: pick(roasts.fake_meter) }
+                },
+                average_score: avg,
+                green_flags: pick([["Reply speed fast","Mummy se darta hai","Good meme taste"],["Financial independent","Doesn't use emojis awkwardly","Pets animals"],["Always carries charger","Likes adrak wali chai","Actually reads books"]]),
+                red_flags: pick([["Uses words like 'sus' unironically","Has an ex trauma","Pineapple on pizza advocate"],["Never splits the bill","Follows 2000 randoms","Replies 'k'"],["Takes astrology too seriously","Listens to sad lofi 24/7","Gym mirror selfies everyday"]]),
+                verdict: vText,
+                verdict_type: vType,
+                closing_line: pick(['ya phir... teri life hai.','shayad tu khud shaadi ke liye ready nahi hai.','bhai/behen, teri marzi — hum toh bas AI hain.','aage badh, better log milenge. probably.'])
+            };
+        }
+
+        // Format number: 12300 → 12.3K
+        function fmtNum(n) {
+            if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+            if (n >= 1000) return (n/1000).toFixed(1) + 'K';
+            return n;
+        }
+
+        // State
+        const heroSec = document.getElementById('hero-section');
+        const loadingSec = document.getElementById('loading-section');
+        const resultSec = document.getElementById('result-section');
+
+        function switchState(state) {
+            [heroSec, loadingSec, resultSec].forEach(s => s.classList.add('hidden'));
+            if (state === 'hero') heroSec.classList.remove('hidden');
+            else if (state === 'loading') loadingSec.classList.remove('hidden');
+            else if (state === 'result') resultSec.classList.remove('hidden');
+        }
+
+        async function startScanning() {
+            const username = document.getElementById('ig-handle').value.trim().replace('@','');
+            const errEl = document.getElementById('scan-error');
+
+            if (!username) { showError('Username daalo pehle!'); return; }
+
+            errEl.classList.add('hidden');
+            switchState('loading');
+
+            // Loading text steps
+            const loadingTextEl = document.getElementById('loading-text');
+            let stepIdx = 0;
+            loadingTextEl.textContent = loadingSteps[0];
+            loadingTextEl.style.opacity = '1';
+
+            const textInterval = setInterval(() => {
+                stepIdx++;
+                if (stepIdx < loadingSteps.length) {
+                    loadingTextEl.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingTextEl.textContent = loadingSteps[stepIdx];
+                        loadingTextEl.style.opacity = '1';
+                    }, 300);
+                }
+            }, 1400);
+
+            try {
+                const resp = await fetch('http://localhost:5000/api/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                const json = await resp.json();
+
+                clearInterval(textInterval);
+
+                if (!resp.ok || json.error) {
+                    switchState('hero');
+                    showError(json.error || 'Something went wrong. Try again.');
+                    return;
+                }
+
+                const profile = json.profile;
+                const analysis = generateAnalysis(profile);
+
+                // Short delay so last loading step shows
+                setTimeout(() => renderResults(profile, analysis), 800);
+            } catch (e) {
+                clearInterval(textInterval);
+                switchState('hero');
+                showError('Server se connect nahi ho paya. Flask server run kar pehle!');
+            }
+        }
+
+        function showError(msg) {
+            const errEl = document.getElementById('scan-error');
+            errEl.textContent = msg;
+            errEl.classList.remove('hidden');
+        }
+
+        function renderResults(profile, data) {
+            switchState('result');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Profile header
+            document.getElementById('res-name').textContent = profile.full_name || profile.username;
+            document.getElementById('res-handle').textContent = '@' + profile.username;
+            document.getElementById('res-bio').textContent = profile.bio || '';
+            document.getElementById('res-followers').textContent = fmtNum(profile.followers);
+            document.getElementById('res-following').textContent = fmtNum(profile.following);
+            document.getElementById('res-posts').textContent = fmtNum(profile.posts_count);
+
+            if (profile.is_verified) document.getElementById('res-verified').classList.remove('hidden');
+
+            // Profile pic
+            if (profile.profile_pic_b64) {
+                const img = document.getElementById('profile-pic');
+                img.src = profile.profile_pic_b64;
+                img.classList.remove('hidden');
+                document.getElementById('profile-pic-placeholder').classList.add('hidden');
+                // Also set on card
+                document.getElementById('card-avatar-img').src = profile.profile_pic_b64;
+            }
+
+            // Score ring
+            const ring = document.getElementById('main-score-ring');
+            const scoreText = document.getElementById('main-score-text');
+            const circumference = 40 * 2 * Math.PI;
+            ring.style.strokeDasharray = `${circumference} ${circumference}`;
+            const offset = circumference - (data.average_score / 100) * circumference;
+            let colorClass = data.average_score > 70 ? 'text-green-500' : data.average_score < 40 ? 'text-red-500' : 'text-yellow-400';
+            ring.className = `progress-ring__circle stroke-current ${colorClass}`;
+            animateValue(scoreText, 0, data.average_score, 1500);
+            setTimeout(() => { ring.style.strokeDashoffset = offset; }, 100);
+
+            // Stamp
+            const stamp = document.getElementById('verdict-stamp');
+            const stampTexts = { marry: '💒 SHAADI KARO', dump: '🚩 BHAGO BHAI', run: '💨 RUN KAR', maybe: '🤔 SOCH LE' };
+            stamp.className = `stamp ${data.verdict_type}`;
+            stamp.textContent = stampTexts[data.verdict_type];
+            stamp.classList.remove('stamp-animate');
+            void stamp.offsetWidth;
+            stamp.classList.add('stamp-animate');
+
+            // Score cards
+            const container = document.getElementById('score-cards-container');
+            container.innerHTML = '';
+            const template = document.getElementById('score-card-template');
+            const labels = {
+                family_values: { title: "Sanskaar Score 🙏", icon: "bi-house-heart" },
+                financial_stability: { title: "Paisa Aura 💸", icon: "bi-cash-stack" },
+                personality: { title: "Vibe Check ✨", icon: "bi-stars" },
+                cultural_goodness: { title: "Desi Meter 🪕", icon: "bi-music-note-beamed" },
+                trustworthiness: { title: "Bharosa Rating 🤝", icon: "bi-shield-check" },
+                lifestyle: { title: "Lifestyle Flex 🍸", icon: "bi-sunglasses" },
+                fake_meter: { title: "Nakli-pana 🎭", icon: "bi-incognito", reverseColor: true }
+            };
+            let d = 1;
+            for (const [key, details] of Object.entries(data.scores)) {
+                if (!labels[key]) continue;
+                const clone = template.content.cloneNode(true);
+                const cardDiv = clone.querySelector('div.bg-white');
+                cardDiv.classList.add(`delay-${d}`);
+                d = d > 3 ? 1 : d + 1;
+                clone.querySelector('.card-title').innerHTML = `<i class="bi ${labels[key].icon} mr-2 opacity-50"></i>${labels[key].title}`;
+                animateValue(clone.querySelector('.card-score'), 0, details.score, 1000);
+                const bar = clone.querySelector('.score-bar-fill');
+                let bc = 'bg-yellow-400';
+                if (labels[key].reverseColor) { bc = details.score > 70 ? 'bg-red-500' : details.score < 40 ? 'bg-green-500' : 'bg-yellow-400'; }
+                else { bc = details.score > 70 ? 'bg-green-500' : details.score < 40 ? 'bg-red-500' : 'bg-yellow-400'; }
+                bar.className = `score-bar-fill rounded-full h-2 ${bc}`;
+                setTimeout(() => { bar.style.width = details.score + '%'; }, 300);
+                clone.querySelector('.card-roast').textContent = `"${details.roast}"`;
+                container.appendChild(clone);
+            }
+
+            // Flags
+            document.getElementById('green-flags-list').innerHTML = data.green_flags.map(f => `<li><i class="bi bi-caret-right-fill text-green-300 text-xs"></i> ${f}</li>`).join('');
+            document.getElementById('red-flags-list').innerHTML = data.red_flags.map(f => `<li><i class="bi bi-caret-right-fill text-red-300 text-xs"></i> ${f}</li>`).join('');
+
+            // Verdict
+            document.getElementById('final-verdict-text').textContent = data.verdict;
+            document.getElementById('closing-line-text').textContent = data.closing_line;
+
+
+            // Populate share card
+            const firstName = (profile.full_name || profile.username).split(' ')[0].toUpperCase();
+            document.getElementById('card-name').textContent = firstName;
+            document.getElementById('card-score-num').textContent = data.average_score;
+            document.getElementById('card-bar-label-2').textContent = '#' + (Math.floor(Math.random() * 999) + 1).toString().padStart(3,'0');
+            document.getElementById('card-verdict-badge').textContent = stampTexts[data.verdict_type];
+
+            // Animate card bars
+            setTimeout(() => {
+                document.getElementById('card-bar-1').style.width = '100%';
+                document.getElementById('card-bar-2').style.width = (data.average_score) + '%';
+            }, 600);
+
+            // Store globally for download
+            window._currentProfile = profile;
+            window._currentData = data;
+        }
+
+        async function downloadCard() {
+            const card = document.getElementById('share-card');
+            try {
+                const canvas = await html2canvas(card, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: null,
+                    logging: false,
+                });
+                const link = document.createElement('a');
+                link.download = `rishta_scan_${(window._currentProfile?.username || 'card')}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } catch (e) {
+                alert('Screenshot ke liye browser permission chahiye. Try kar screenshot shortcut se!');
+            }
+        }
+
+        function resetApp() {
+            switchState('hero');
+            document.getElementById('ig-handle').value = '';
+            document.getElementById('scan-error').classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function animateValue(obj, start, end, duration) {
+            let startTs = null;
+            const step = (ts) => {
+                if (!startTs) startTs = ts;
+                const progress = Math.min((ts - startTs) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start);
+                if (progress < 1) window.requestAnimationFrame(step);
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // Allow Enter key to trigger scan
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !heroSec.classList.contains('hidden')) startScanning();
+        });
+    </script>
+</body>
+</html>
