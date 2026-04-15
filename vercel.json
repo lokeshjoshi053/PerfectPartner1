@@ -1,7 +1,7 @@
 {
   "functions": {
     "app/api/scan/route.js": {
-      "runtime": "nodejs18.x"
+      "runtime": "nodejs"
     }
   },
   "rewrites": [
@@ -14,7 +14,6 @@
       "destination": "/api/:path*"
     }
   ],
-  // "SCRAPERAPI_KEY": "@scrprapi_key"  // Remove reference - add manually in dashboard
   "headers": [
     {
       "source": "/(.*)",
@@ -27,4 +26,3 @@
     }
   ]
 }
-
