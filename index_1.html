@@ -548,7 +548,7 @@
             }, 1400);
 
             try {
-                const resp = await fetch('http://localhost:5000/api/scan', {
+                const resp = await fetch('/api/scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username })
@@ -559,12 +559,17 @@
 
                 if (!resp.ok || json.error) {
                     switchState('hero');
-                    showError(json.error || 'Something went wrong. Try again.');
+                showError(json.error || 'Profile fetch failed. Check server logs.');
                     return;
                 }
 
-                const profile = json.profile;
+                const { profile, meta } = json;
+                if (!profile) {
+                    showError('No profile data returned. Username might be private.');
+                    return;
+                }
                 const analysis = generateAnalysis(profile);
+                console.log('✅ Profile loaded:', profile.username, meta);
 
                 // Short delay so last loading step shows
                 setTimeout(() => renderResults(profile, analysis), 800);

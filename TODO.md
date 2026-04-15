@@ -14,7 +14,9 @@
 - [x] 4. Test the endpoint
 - [x] 5. Fixed profile photo base64 conversion (added retry/logging)
   
-**Status:** 5/5 complete ✅ All done!
+**Status:** 6/6 complete - Frontend fixed! ✅
+
+**Final fix:** Updated index_1.html - now uses `/api/scan` (Next.js) instead of localhost:5000 Flask. No more "Flask server" error!
 
 **Status:** 4/5 complete (added key to .env.example)
 
